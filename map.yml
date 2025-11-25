@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation environment EC2 instance
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - test
+      - prod
+    Description: "Select environment (dev, test, or prod)"
+
+Mappings:
+  EnvironmentToInstanceType:
+    dev:
+      InstanceType: t2.micro
+      AMI: ami-03695d52f0d883f65  
+    test:
+      InstanceType: t3.micro
+      AMI: ami-03695d52f0d883f65
+    prod:
+      InstanceType: t3.medium
+      AMI: ami-03695d52f0d883f65
+
+Resources:
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !FindInMap [EnvironmentToInstanceType, !Ref EnvironmentName, InstanceType]
+      ImageId: !FindInMap [EnvironmentToInstanceType, !Ref EnvironmentName, AMI]
+      KeyName: newkey              
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "EC2-${EnvironmentName}"
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "Security group for ${EnvironmentName} EC2"
+      VpcId: vpc-0ed0f871cf34b45b3              
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-sg"
+
+Outputs:
+  InstanceId:
+    Description: "Instance ID of the EC2"
+    Value: !Ref MyEC2Instance
+
+  InstancePublicIP:
+    Description: "Public IP of the EC2 instance"
+    Value: !GetAtt MyEC2Instance.PublicIp
